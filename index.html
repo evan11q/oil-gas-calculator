@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <!-- For full-screen web-app mode on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+  <title>Oil & Gas Calculator</title>
+  <style>
+    /* 1) Full-page gradient bg on <html> so overscroll shows your gradient, not white */
+    html {
+      height: 100%;
+      background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%) fixed;
+      overscroll-behavior-y: none; /* prevent bounce “white flash” */
+    }
+    /* 2) Body sits transparent above, uses safe-area insets */
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: transparent;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #1c1e21;
+    }
+
+    /* 3) Floating glass container */
+    .app-container {
+      width: 90%;
+      max-width: 380px;
+      padding: 2rem;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(15px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    /* 4) Tabs */
+    .tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.35);
+      backdrop-filter: blur(10px);
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .tab.active {
+      background: rgba(255,255,255,0.6);
+    }
+
+    /* 5) Panels hide/show */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* 6) Converter UI (same glass style for inputs/buttons) */
+    .input-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    select, input[type="number"] {
+      width: 100%;
+      padding: 0.8rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.4);
+      backdrop-filter: blur(10px);
+      outline: none;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
+    select:focus, input:focus {
+      box-shadow: 0 0 0 3px rgba(24,119,242,0.3);
+    }
+    .buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+    button {
+      flex: 1;
+      padding: 0.8rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.35);
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+    }
+    button:hover {
+      transform: scale(1.03);
+      background: rgba(255,255,255,0.5);
+    }
+    #result {
+      margin-top: 1.5rem;
+      font-size: 1.2rem;
+      text-align: center;
+      min-height: 1.4em;
+      font-weight: 500;
+    }
+
+    /* 7) History UI */
+    #historyList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    #historyList li {
+      padding: 0.6rem 0.4rem;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      font-size: 0.9rem;
+    }
+    #clearHistory {
+      margin-top: 1rem;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="converter">Converter</div>
+      <div class="tab"      data-tab="history">History</div>
+    </div>
+
+    <!-- Converter Panel -->
+    <div id="converter" class="panel active">
+      <div class="input-group">
+        <label for="calcType" id="typeLabel">Choose Conversion</label>
+        <select id="calcType">
+          <option value="bblToGallon">Barrels → Gallons</option>
+          <option value="gallonToBbl">Gallons → Barrels</option>
+          <option value="bblToLiter">Barrels → Liters</option>
+          <option value="literToBbl">Liters → Barrels</option>
+          <option value="scfToM3">SCF → m³</option>
+          <option value="m3ToScf">m³ → SCF</option>
+          <option value="psiToKpa">PSI → kPa</option>
+          <option value="kpaToPsi">kPa → PSI</option>
+          <option value="fToC">°F → °C</option>
+          <option value="cToF">°C → °F</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label for="inputValue" id="valueLabel">Value (bbl)</label>
+        <input type="number" id="inputValue" placeholder="Enter value in bbl"/>
+      </div>
+      <div class="buttons">
+        <button id="convertBtn">Convert</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+      <div id="result"></div>
+    </div>
+
+    <!-- History Panel -->
+    <div id="history" class="panel">
+      <ul id="historyList"></ul>
+      <button id="clearHistory">Clear History</button>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching
+    const tabs   = document.querySelectorAll('.tab');
+    const panels = document.querySelectorAll('.panel');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Unit map for labels/placeholders
+    const units = {
+      bblToGallon: ['bbl','gal'],
+      gallonToBbl: ['gal','bbl'],
+      bblToLiter:  ['bbl','L'],
+      literToBbl:  ['L','bbl'],
+      scfToM3:     ['SCF','m³'],
+      m3ToScf:     ['m³','SCF'],
+      psiToKpa:    ['PSI','kPa'],
+      kpaToPsi:    ['kPa','PSI'],
+      fToC:        ['°F','°C'],
+      cToF:        ['°C','°F']
+    };
+
+    const typeEl  = document.getElementById('calcType');
+    const inputEl = document.getElementById('inputValue');
+    const labelEl = document.getElementById('valueLabel');
+    const resEl   = document.getElementById('result');
+    let history   = [];
+
+    // Update placeholder & label when conversion type changes
+    typeEl.addEventListener('change', () => {
+      const [inU] = units[typeEl.value];
+      labelEl.textContent = `Value (${inU})`;
+      inputEl.placeholder = `Enter value in ${inU}`;
+      resEl.textContent = '';
+      inputEl.value = '';
+    });
+
+    // Perform conversion and record history
+    function convert() {
+      const type = typeEl.value;
+      const val  = parseFloat(inputEl.value);
+      if (isNaN(val)) {
+        resEl.textContent = '⚠️ Please enter a number.';
+        return;
+      }
+
+      let out;
+      switch(type) {
+        case 'bblToGallon': out = val * 42;      break;
+        case 'gallonToBbl': out = val / 42;      break;
+        case 'bblToLiter' : out = val * 158.9873;break;
+        case 'literToBbl' : out = val / 158.9873;break;
+        case 'scfToM3'     : out = val * 0.0283168; break;
+        case 'm3ToScf'     : out = val / 0.0283168; break;
+        case 'psiToKpa'    : out = val * 6.89476; break;
+        case 'kpaToPsi'    : out = val / 6.89476; break;
+        case 'fToC'        : out = (val - 32) * 5/9; break;
+        case 'cToF'        : out = (val * 9/5) + 32; break;
+        default: out = NaN;
+      }
+
+      const [inU, outU] = units[type];
+      const entry = isNaN(out)
+        ? 'Conversion error'
+        : `${val.toFixed(4)} ${inU} → ${out.toFixed(4)} ${outU}`;
+
+      resEl.textContent = entry;
+      if (!isNaN(out)) {
+        history.push(entry);
+        updateHistory();
+      }
+    }
+
+    // Update history panel
+    function updateHistory() {
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+      // show newest first
+      history.slice().reverse().forEach(text => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        list.appendChild(li);
+      });
+    }
+
+    // Clear inputs/result
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      inputEl.value = '';
+      resEl.textContent = '';
+      inputEl.focus();
+    });
+
+    // Clear history
+    document.getElementById('clearHistory').addEventListener('click', () => {
+      history = [];
+      updateHistory();
+    });
+
+    // Enter-to-convert
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') convert();
+    });
+    document.getElementById('convertBtn').addEventListener('click', convert);
+
+    // Initial focus
+    inputEl.focus();
+  </script>
+</body>
+</html>
